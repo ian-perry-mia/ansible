@@ -3,3 +3,4 @@
 *.DS_Store*
 .ansible
 .vscode
+.cache_ggshield

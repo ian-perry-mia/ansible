@@ -1,8 +1,8 @@
 ---
-- name: Debug
-  ansible.builtin.debug:
-    var: hostvars[inventory_hostname]
-  tags: debug
+# - name: Debug
+#   ansible.builtin.debug:
+#     var: hostvars[inventory_hostname]
+#   tags: debug
 
 - name: Set Location
   ansible.builtin.set_fact:

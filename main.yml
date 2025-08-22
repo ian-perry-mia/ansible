@@ -46,8 +46,8 @@
   remote_user: ansible
   become: true
   roles:
-    - role: gantsign.golang
-    - role: caddy
+    - gantsign.golang
+    - caddy
   tags: caddy
 
 - name: Zabbix Server Hosts
@@ -73,15 +73,15 @@
   roles:
     - geerlingguy.docker
 
-- name: Meshcentral Hosts
-  hosts: meshcentral
-  become: true
-  roles:
-    - trfore.mongodb_install
-    - stephdewit.nvm
-    - meshcentral
-  vars_files:
-    - vault.yml
+# - name: Meshcentral Hosts
+#   hosts: meshcentral
+#   become: true
+#   roles:
+#     - trfore.mongodb_install
+#     - stephdewit.nvm
+#     - meshcentral
+#   vars_files:
+#     - vault.yml
 
 - name: Proxmox Hosts
   hosts: proxmox

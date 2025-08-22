@@ -5,8 +5,6 @@ roles:
     version: "3.5.0"
   - src: geerlingguy.apache
     version: "4.0.0"
-  - src: trfore.mongodb_install
-    version: "v3.0.2"
   - src: stephdewit.nvm
     version: "v3.4.5"
 

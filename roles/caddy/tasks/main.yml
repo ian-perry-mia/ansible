@@ -1,0 +1,47 @@
+---
+- name: Install required packages for Caddy
+  ansible.builtin.package:
+    name:
+      - debian-keyring
+      - debian-archive-keyring
+      - apt-transport-https
+    state: present
+
+- name: Install Caddy signing key
+  ansible.builtin.apt_key:
+    url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+    state: present
+
+- name: Add Caddy repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://dl.cloudsmith.io/public/caddy/stable/deb/debian
+      any-version main"
+    state: present
+    filename: caddy-stable
+
+- name: Add Caddy src repository
+  ansible.builtin.apt_repository:
+    repo: "deb-src https://dl.cloudsmith.io/public/caddy/stable/deb/debian
+      any-version main"
+    state: present
+    filename: caddy-stable
+
+- name: Install caddy
+  ansible.builtin.package:
+    name: caddy
+    update_cache: true
+    state: present
+
+- name: Install caddy cloudflare plugin
+  ansible.builtin.command:
+    cmd: caddy add-package github.com/caddy-dns/cloudflare
+  register: caddy_plugin_install
+  changed_when: caddy_plugin_install.stdout != ""
+  failed_when: caddy_plugin_install.rc != 0 and "package is already added" not in caddy_plugin_install.stderr
+
+- name: Restart Caddy service if plugin was installed
+  ansible.builtin.systemd:
+    name: caddy
+    state: restarted
+    enabled: true
+  when: caddy_plugin_install.changed

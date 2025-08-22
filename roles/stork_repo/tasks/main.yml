@@ -1,0 +1,18 @@
+- name: Ensure ISC Stork GPG Key is Present
+  ansible.builtin.apt_key:
+    url: https://dl.cloudsmith.io/public/isc/stork/gpg.77F64EC28053D1FB.key
+    state: present
+    keyring: /usr/share/keyrings/isc-stork-archive-keyring.gpg
+
+- name: Configure Stork Cloudsmith Repository
+  ansible.builtin.deb822_repository:
+    name: isc-stork
+    types:
+      - deb
+      - deb-src
+    suites: "{{ ansible_distribution_release }}"
+    components: main
+    signed_by: /usr/share/keyrings/isc-stork-archive-keyring.gpg
+    state: present
+    uris:
+      - "https://dl.cloudsmith.io/public/isc/stork/deb/{{ ansible_distribution | lower() }}"

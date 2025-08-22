@@ -1,0 +1,78 @@
+---
+
+
+- name: Install Zabbix Repo Debian
+  ansible.builtin.apt:
+    deb: "https://repo.zabbix.com/zabbix/{{ zabbix_release }}/release/ubuntu/pool/main/z/zabbix-release\
+          /zabbix-release_latest_7.4+ubuntu{{ ansible_distribution_version }}_all.deb"
+
+- name: Refresh apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Zabbix Server, Frontend, Agent2
+  ansible.builtin.package:
+    name:
+      - zabbix-server-mysql
+      - zabbix-frontend-php
+      - zabbix-apache-conf
+      - zabbix-sql-scripts
+      - zabbix-agent2
+      - fping
+      - jq
+      - expect
+    state: present
+
+- name: Copy Entra ID SAML Cert to Host
+  ansible.builtin.copy:
+    src: zabbix.cer
+    dest: /usr/share/zabbix/ui/conf/certs/idp.crt
+    mode: '0644'
+
+- name: Configure Zabbix Web UI
+  ansible.builtin.template:
+    src: zabbix.conf.php.j2
+    dest: /usr/share/zabbix/ui/conf/zabbix.conf.php
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Modify Zabbix Server Config for MySQL
+  ansible.builtin.template:
+    src: zabbix_server.conf.j2
+    dest: /etc/zabbix/zabbix_server.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+
+- name: Modify Apache to Serve Zabbix on root
+  ansible.builtin.template:
+    src: 000-default.conf.j2
+    dest: /etc/apache2/sites-available/000-default.conf
+    mode: "0644"
+
+- name: Start Zabbix and apache2
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  loop:
+    - zabbix-server
+    - apache2
+    - zabbix-agent2
+
+- name: Create temporary directory for scripts
+  ansible.builtin.file:
+    path: /tmp/unifiscripts
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download unifi template git repo
+  ansible.builtin.git:
+    accept_newhostkey: true
+    dest: /tmp/unifiscripts
+    repo: https://github.com/patricegautier/unifiZabbix.git
+    version: master

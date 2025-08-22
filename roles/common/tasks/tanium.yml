@@ -1,0 +1,77 @@
+---
+- name: Check Tanium Client installation status
+  ansible.builtin.systemd:
+    name: taniumclient
+    state: started
+    enabled: true
+  tags: tanium
+  register: tanium_service_status
+  ignore_errors: true
+
+- name: Check if tanium-client-bundle.zip exists
+  ansible.builtin.stat:
+    path: /tmp/tanium-client-bundle
+  register: tanium_zip_stat
+
+
+- name: Install Tanium Client
+  when: >
+    'status' not in tanium_service_status
+    or 'ActiveState' not in tanium_service_status.status
+    or tanium_service_status.status.ActiveState != 'active'
+  block:
+    - name: Ensure tanium-client-bundle.zip exists
+      when: not tanium_zip_stat.stat.exists
+      ansible.builtin.import_tasks: tanium-zip.yml
+      tags: tanium
+
+    - name: Run Tanium Client installer
+      ansible.builtin.command: /tmp/tanium-client-bundle/install.sh
+      changed_when: true
+      tags: tanium
+
+- name: Check Tanium client configuration
+  ansible.builtin.stat:
+    path: /opt/Tanium/TaniumClient/tanium-init.dat
+  register: tanium_init_stat
+
+- name: Check if tanium-client-bundle.zip exists
+  ansible.builtin.stat:
+    path: /tmp/tanium-client-bundle
+  register: tanium_zip_stat
+
+- name: Ensure Tanium client configuration file exists
+  when: not tanium_init_stat.stat.exists
+  block:
+
+    - name: Ensure tanium-client-bundle.zip exists
+      when: not tanium_zip_stat.stat.exists
+      ansible.builtin.import_tasks: tanium-zip.yml
+      tags: tanium
+
+    - name: Copy default Tanium client configuration
+      ansible.builtin.copy:
+        src: /tmp/tanium-client-bundle/tanium-init.dat
+        dest: /opt/Tanium/TaniumClient/tanium-init.dat
+        mode: '0644'
+        remote_src: true
+      tags: tanium
+
+    - name: Restart Tanium Client service
+      ansible.builtin.systemd:
+        name: taniumclient
+        state: restarted
+      tags: tanium
+
+    - name: Ensure Tanium Client is running
+      ansible.builtin.systemd:
+        name: taniumclient
+        state: started
+        enabled: true
+      tags: tanium
+
+- name: Cleanup Tanium Client bundle
+  ansible.builtin.file:
+    path: /tmp/tanium-client-bundle
+    state: absent
+  tags: tanium

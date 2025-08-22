@@ -1,0 +1,10 @@
+PidFile=/run/zabbix/zabbix_agent2.pid
+LogFile=/var/log/zabbix/zabbix_agent2.log
+LogFileSize=32
+Server=hq-zabbix01.hq.avionics411.com,hq-zabbix02.hq.avionics411.com
+ServerActive=hq-zabbix01.hq.avionics411.com;hq-zabbix02.hq.avionics411.com
+Hostname={{ inventory_hostname }}.{{ location }}.avionics411.com
+Include=/etc/zabbix/zabbix_agent2.d/*.conf
+PluginSocket=/run/zabbix/agent.plugin.sock
+ControlSocket=/run/zabbix/agent.sock
+Include=/etc/zabbix/zabbix_agent2.d/plugins.d/*.conf

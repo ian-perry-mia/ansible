@@ -1,0 +1,75 @@
+---
+- name: Check if Poweradmin is already installed
+  ansible.builtin.stat:
+    path: /var/www/html/index.html
+  register: poweradmin_installed
+
+- name: Install Poweradmin
+  when: not poweradmin_installed.stat.exists
+  block:
+    - name: Install prerequisites for poweradmin
+      ansible.builtin.package:
+        name:
+          - php
+          - php-intl
+          - php-php-gettext
+          - php-tokenizer
+          - php-fpm
+          - php-mysql
+          - apache2
+        state: present
+
+    - name: Enable rewrite module for Apache
+      community.general.apache2_module:
+        name: rewrite
+        state: present
+
+    - name: Ensure unzip is installed
+      ansible.builtin.package:
+        name: unzip
+        state: present
+
+    - name: Download Poweradmin
+      ansible.builtin.get_url:
+        url: https://github.com/poweradmin/poweradmin/archive/refs/tags/v3.9.4.zip
+        dest: /tmp/poweradmin.zip
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Unzip Poweradmin
+      ansible.builtin.unarchive:
+        src: /tmp/poweradmin.zip
+        dest: /tmp/
+        remote_src: true
+        mode: '0755'
+
+    - name: Move Poweradmin files to web root
+      ansible.builtin.copy:
+        src: /tmp/poweradmin-3.9.4/
+        dest: /var/www/html/
+        remote_src: true
+        mode: '0755'
+        owner: www-data
+        group: www-data
+
+    - name: Set ownership of Poweradmin files
+      ansible.builtin.file:
+        path: /var/www/html/
+        owner: www-data
+        group: www-data
+        recurse: true
+
+    - name: Create Poweradmin configuration file
+      ansible.builtin.template:
+        src: poweradmin-config.php.j2
+        dest: /var/www/html/config/settings.php
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Restart apache2 service
+      ansible.builtin.systemd:
+        name: apache2
+        state: restarted
+        enabled: true

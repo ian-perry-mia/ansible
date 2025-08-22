@@ -1,0 +1,44 @@
+---
+- name: Check if Crowdstrike Falcon Sensor is installed
+  ansible.builtin.systemd:
+    name: falcon-sensor
+    state: started
+    enabled: true
+  tags: crowdstrike
+  register: crowdstrike_service_status
+  ignore_errors: true
+
+- name: Install Crowdstrike Falcon Sensor
+  when: >
+    'status' not in crowdstrike_service_status
+    or 'ActiveState' not in crowdstrike_service_status.status
+    or crowdstrike_service_status.status.ActiveState != 'active'
+  block:
+    - name: Copy Crowdstrike Falcon Installation Script
+      ansible.builtin.copy:
+        src: falcon-linux-install.sh
+        dest: /tmp/falcon-linux-install.sh
+        mode: '0755'
+      tags: crowdstrike
+
+    - name: Run Crowdstrike Falcon Installation Script
+      ansible.builtin.command: /tmp/falcon-linux-install.sh
+      args:
+        creates: /opt/CrowdStrike/falcon-sensor
+      environment:
+        FALCON_CLIENT_ID: "{{ crowdstrike_client_id }}"
+        FALCON_CLIENT_SECRET: "{{ crowdstrike_client_secret }}"
+      tags: crowdstrike
+
+    - name: Ensure Crowdstrike Falcon Sensor is running
+      ansible.builtin.systemd:
+        name: falcon-sensor
+        state: started
+        enabled: true
+      tags: crowdstrike
+
+    - name: Cleanup Crowdstrike Falcon Installation Script
+      ansible.builtin.file:
+        path: /tmp/falcon-linux-install.sh
+        state: absent
+      tags: crowdstrike

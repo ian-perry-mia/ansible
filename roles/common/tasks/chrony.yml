@@ -1,0 +1,21 @@
+---
+- name: Install chrony
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  tags: chrony
+
+- name: Configure chrony
+  ansible.builtin.copy:
+    dest: /etc/chrony/conf.d/50-ansible.conf
+    mode: '0644'
+    content: |
+      pool pool.ntp.org iburst
+
+      driftfile /var/lib/chrony/chrony.drift
+      makestep 1.0 3
+      stratumweight 0
+      logdir /var/log/chrony
+  tags: authd
+  notify:
+    - Restart chrony

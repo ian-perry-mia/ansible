@@ -1,0 +1,82 @@
+---
+- name: Add authd repository
+  ansible.builtin.apt_repository:
+    repo: 'ppa:ubuntu-enterprise-desktop/authd'
+    state: present
+
+
+- name: Install authd
+  ansible.builtin.package:
+    name: authd
+    state: present
+
+
+- name: Install msentraid snap
+  community.general.snap:
+    name: authd-msentraid
+    state: present
+  register: msentraid_snap_install
+
+
+- name: Create broker directory
+  ansible.builtin.file:
+    path: /etc/authd/brokers.d/
+    state: directory
+    mode: '0755'
+
+- name: Copy broker configuration file
+  ansible.builtin.copy:
+    src: /snap/authd-msentraid/current/conf/authd/msentraid.conf
+    dest: /etc/authd/brokers.d/msentraid.conf
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+
+
+- name: Write broker configuration
+  ansible.builtin.copy:
+    dest: /var/snap/authd-msentraid/current/broker.conf
+    content: |
+      [oidc]
+      issuer = https://login.microsoftonline.com/9c718c21-d249-408d-991f-c8e763618057/v2.0
+      client_id = f4d24177-2694-47ac-bb8b-faab495e1ec0
+      force_provider_authentication = false
+
+      [users]
+      ssh_allowed_suffixes = @avionics411.com
+      allowed_users = ALL
+      owner = ian.perry@avionics411.com
+    owner: root
+    group: root
+    mode: '0644'
+  register: broker_config
+
+
+- name: Restart authd service
+  ansible.builtin.systemd:
+    name: authd
+    state: restarted
+
+
+- name: Pause to wait for authd-msentraid snap to start
+  ansible.builtin.pause:
+    seconds: 5
+
+
+- name: Restart authd-msentraid snap
+  ansible.builtin.command: snap restart authd-msentraid
+  changed_when: true
+
+- name: Configure authd-sshd integration
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/authd.conf
+    content: |
+      # Authd integration
+      UsePAM yes
+      KbdInteractiveAuthentication yes
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Restart SSH

@@ -1,0 +1,32 @@
+- name: Install Stork Repository
+  ansible.builtin.include_role:
+    name: stork_repo
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+
+- name: Install PostgreSQL
+  ansible.builtin.include_role:
+    name: geerlingguy.postgresql
+
+- name: Install Stork Server
+  ansible.builtin.apt:
+    name: isc-stork-server
+    state: present
+
+- name: Configure Stork Server
+  ansible.builtin.template:
+    src: stork_server.env.j2
+    dest: /etc/stork/server.env
+    owner: root
+    group: root
+    mode: '0644'
+
+# Make sure that you run the store-tool db-create command before now. Then put the database password in the vault.yml file.
+- name: Start Stork Server
+  ansible.builtin.systemd:
+    name: isc-stork-server
+    state: started
+    enabled: true

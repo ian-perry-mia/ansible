@@ -1,0 +1,75 @@
+---
+- name: Modify to point DNS to localhost
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#DNS='
+    line: 'DNS=127.0.0.1'
+  register: dns_modified
+
+- name: Modify to disable DNSStubListener
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#DNSStubListener='
+    line: 'DNSStubListener=no'
+
+- name: Create symbolic link for systemd-resolved
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+
+- name: Reboot if DNS was modified
+  ansible.builtin.reboot:
+    msg: "Rebooting to apply DNS changes"
+  when: dns_modified.changed
+
+- name: Verify keys are installed
+  ansible.builtin.command:
+    cmd: install -d /etc/apt/keyrings
+    creates: /etc/apt/keyrings
+
+- name: Pin PowerDNS 2.0 DNSdist repository
+  ansible.builtin.copy:
+    content: |
+      Package: dnsdist*
+      Pin: origin repo.powerdns.com
+      Pin-Priority: 600
+    dest: /etc/apt/preferences.d/dnsdist-20
+    mode: '0644'
+
+- name: Install PowerDNS 5.0 Authoritative Server GPG key
+  ansible.builtin.get_url:
+    url: https://repo.powerdns.com/FD380FBB-pub.asc
+    dest: /etc/apt/keyrings/dnsdist-20-pub.asc
+    mode: '0644'
+
+- name: Install PowerDNS 5.0 Authoritative Server repository
+  ansible.builtin.deb822_repository:
+    name: dnsdist
+    types: deb
+    uris: http://repo.powerdns.com/ubuntu
+    suites: "{{ ansible_distribution_release }}-dnsdist-20"
+    components: main
+    signed_by: /etc/apt/keyrings/dnsdist-20-pub.asc
+    state: present
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install PowerDNS 2.0 DNSdist
+  ansible.builtin.package:
+    name: dnsdist
+    state: present
+
+- name: Configure DNSdist
+  ansible.builtin.template:
+    src: dnsdist.conf.j2
+    dest: /etc/dnsdist/dnsdist.yml
+    mode: '0644'
+
+- name: Ensure DNSdist service is running
+  ansible.builtin.systemd:
+    name: dnsdist
+    state: restarted
+    enabled: true

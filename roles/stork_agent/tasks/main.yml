@@ -1,0 +1,28 @@
+- name: Install Stork Repository
+  ansible.builtin.include_role:
+    name: stork_repo
+
+- name: Install Stork Agent
+  ansible.builtin.apt:
+    name: isc-stork-agent
+    state: present
+    update_cache: true
+
+- name: Configure Stork Agent
+  ansible.builtin.template:
+    src: stork.agent.env.j2
+    dest: /etc/stork/agent.env
+    owner: root
+    group: root
+    mode: '0644'
+
+# - name: Register Agent with Stork Server
+#   ansible.builtin.command:
+#     cmd: "/usr/bin/stork-agent register --server-url http://{{ stork_server }}:8080"
+#     creates: /var/lib/stork/agent_id
+
+- name: Start Stork Agent
+  ansible.builtin.systemd:
+    name: isc-stork-agent
+    state: started
+    enabled: true

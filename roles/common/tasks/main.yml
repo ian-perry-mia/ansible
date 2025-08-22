@@ -1,0 +1,149 @@
+---
+- name: Debug
+  ansible.builtin.debug:
+    var: hostvars[inventory_hostname]
+  tags: debug
+
+- name: Set Location
+  ansible.builtin.set_fact:
+    location: "{{ inventory_hostname | regex_search('^(.*?)-.*', '\\1') | first }}"
+  tags: zabbix_agent
+
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - python3-pip
+      - python3-apt
+      - python3-requests
+      - python3-urllib3
+      - vim
+      - ncdu
+      - btop
+      - rsync
+      - mosh
+      # - spice-vdagent
+    state: present
+    update_cache: true
+  tags: packages
+
+- name: Set timezone
+  community.general.timezone:
+    name: America/Chicago
+
+- name: Check otel-collector start status
+  ansible.builtin.systemd_service:
+    name: otel-collector
+    state: started
+  register: otel
+  ignore_errors: true
+  tags: otel-client
+
+- name: Install O2 Log Collector
+  tags: otel-client
+  when: >
+    'status' not in otel
+    or 'ActiveState' not in otel.status
+    or otel.status.ActiveState != 'active'
+  block:
+    - name: Download O2 Log Collector Installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/openobserve/agents/main/linux/install.sh
+        dest: /tmp/o2install.sh
+        mode: '0755'
+
+    - name: Run O2 Log Collector Installer
+      ansible.builtin.command:
+        argv:
+          - /tmp/o2install.sh
+          - https://logs.hq.avionics411.com/api/default/
+          - aWFuLnBlcnJ5QGF2aW9uaWNzNDExLmNvbTpHbVN0Q25ZSE9wdGhGcENl
+      changed_when: true
+
+- name: Set up admin user
+  ansible.builtin.user:
+    name: miadmin
+    comment: "MI Admin"
+    shell: /bin/bash
+    groups: users,sudo
+    append: true
+    state: present
+    password: "$6$rounds=4096$AzWU4HPWEe0Na15A$JviQ/5bcO2pTlHjcOpGamoRRT7LdDBm/nk8SWVQ/BPXt82R08OsCR5rFfwipsBd0ckOXdlmuMCf7CGgVLK5fk1"
+  tags: user
+
+- name: Add authorized key for admin user
+  ansible.posix.authorized_key:
+    user: miadmin
+    state: present
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFxbdtaCCPBbZz+iTqvjec7cih7QBlYaXTX0V09xB1WW"
+  tags: user
+
+- name: Check Meshagent
+  ansible.builtin.systemd:
+    name: millintagent
+    state: started
+    enabled: true
+  register: meshagent
+  ignore_errors: true
+  tags: meshagent
+
+- name: Set MeshCentral Fact for Reconfiguration
+  ansible.builtin.set_fact:
+    configuremesh: "{{ configuremesh | default(false) }}"
+  tags: meshagent
+
+- name: Install Meshagent if not already installed
+  tags: meshagent
+  when: >
+    configuremesh
+    or ('status' not in meshagent
+    or 'ActiveState' not in meshagent.status
+    or meshagent.status.ActiveState != 'active')
+  block:
+    - name: Download MeshCentral Agent Installer
+      ansible.builtin.get_url:
+        url: https://meshc.hq.avionics411.com/meshagents?script=1
+        dest: /tmp/meshinstall.sh
+        mode: '0755'
+    - name: Run MeshCentral Agent Installer
+      ansible.builtin.command:
+        argv:
+          - /tmp/meshinstall.sh
+          - "https://meshc.hq.avionics411.com"
+          - 'u2rQ@UaoZrunpRaXX6A9GrGvdJQOzCkGCAvUowAZBWL4x0U$y208OlEjNflwDnxi'
+      changed_when: true
+
+- name: Install Crowdstrike
+  ansible.builtin.import_tasks: crowdstrike.yml
+  when: ansible_distribution != "Debian" and ansible_distribution_major_version|int < 13
+  tags: crowdstrike
+
+- name: Install Rapid7
+  ansible.builtin.import_tasks: rapid7.yml
+  vars:
+    rapid7_version: "4.0.17.21"  # Example version, adjust as needed
+    rapid7_subversion: "-1" # Only if needed.
+  tags: rapid7
+
+- name: Install Tanium
+  ansible.builtin.import_tasks: tanium.yml
+  when: ansible_distribution != "Debian" and ansible_distribution_major_version|int < 13
+  tags: tanium
+
+- name: Configure chrony
+  ansible.builtin.import_tasks: chrony.yml
+  when: 'not (container | default(false))'
+  tags: chrony
+
+- name: Configure zabbbix agent
+  ansible.builtin.import_tasks: zabbix.yml
+  tags: zabbix_agent
+
+- name: Configure OPKSSH
+  ansible.builtin.import_tasks: opkssh.yml
+  tags: opkssh
+
+- name: Configure Ubuntu-Specific Settings
+  ansible.builtin.import_role:
+    name: ubuntu
+  when: ansible_distribution == "Ubuntu"
+  tags: ubuntu

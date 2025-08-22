@@ -1,0 +1,48 @@
+- name: Configure unattended upgrades
+  ansible.builtin.import_tasks: unattended.yml
+  tags: unattended
+
+# qemu-guest-agent is installed by cloud-init already
+- name: Verify qemu-guest-agent installation
+  ansible.builtin.command: qemu-ga --version
+  register: qemu_ga_version
+  changed_when: false
+  failed_when: qemu_ga_version.rc != 0
+  tags: qemu-guest-agent
+
+- name: Verify hostname resolution
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_host }} {{ inventory_hostname }}"
+  notify:
+    - Restart resolved
+
+- name: Install authd
+  ansible.builtin.import_tasks: authd.yml
+  tags: authd
+
+- name: Configure UFW
+  when: ansible_facts['os_family'] == 'Debian'
+  tags: ufw
+  block:
+    - name: Allow SSH
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+        state: enabled
+      register: ufw_ssh
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: allow
+      register: ufw_enabled
+    - name: Restart UFW
+      ansible.builtin.systemd:
+        name: ufw
+        state: restarted
+      when: ufw_ssh.changed or ufw_enabled.changed
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  tags: hostname

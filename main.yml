@@ -1,0 +1,111 @@
+---
+- name: Common tasks for all hosts
+  hosts: all
+  become: true
+  vars:
+    ansible_ssh_private_key_file: .ssh/id_ed25519
+    zabbix_release: "7.4"
+  vars_files:
+    - vault.yml
+  roles:
+    - common
+
+- name: Ubuntu Hosts
+  hosts: ubuntu
+  become: true
+  roles:
+    - ubuntu
+
+- name: MariaDB Server Hosts
+  hosts: mariadb
+  become: true
+  roles:
+    - database
+
+- name: DNS Server Hosts
+  hosts: dns_server
+  become: true
+  roles:
+    - powerdns_server
+  tags: dns_server
+  vars_files:
+    - vault.yml
+
+- name: PowerDNS Admin Hosts
+  hosts: poweradmin
+  become: true
+  roles:
+    - poweradmin
+    - geerlingguy.docker
+  tags: poweradmin
+  vars_files:
+    - vault.yml
+
+- name: Caddy Server Hosts
+  hosts: caddy
+  remote_user: ansible
+  become: true
+  roles:
+    - role: gantsign.golang
+    - role: caddy
+  tags: caddy
+
+- name: Zabbix Server Hosts
+  hosts: zabbix_server
+  remote_user: ansible
+  become: true
+  roles:
+    - geerlingguy.apache
+    - zabbix_server
+  tags: zabbix
+  vars_files:
+    - vault.yml
+
+- name: Snipe-IT Hosts
+  hosts: snipe_it
+  become: true
+  roles:
+    - geerlingguy.docker
+
+- name: OpenObserve Hosts
+  hosts: openobserve
+  become: true
+  roles:
+    - geerlingguy.docker
+
+- name: Meshcentral Hosts
+  hosts: meshcentral
+  become: true
+  roles:
+    - trfore.mongodb_install
+    - stephdewit.nvm
+    - meshcentral
+  vars_files:
+    - vault.yml
+
+- name: Proxmox Hosts
+  hosts: proxmox
+  remote_user: root
+  roles:
+    - proxmox
+  tags: proxmox
+
+- name: Kea Hosts
+  hosts: kea
+  become: true
+  roles:
+    - kea
+
+- name: Stork Server Hosts
+  hosts: stork_server
+  become: true
+  roles:
+    - stork_server
+  vars_files:
+    - vault.yml
+
+- name: Netbox Hosts
+  hosts: netbox
+  become: true
+  roles:
+    - geerlingguy.docker

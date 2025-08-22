@@ -1,0 +1,169 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Ylianst/MeshCentral/master/meshcentral-config-schema.json",
+  "__comment__": "This is a sample advanced configuration file, all values and sections that start with underscore (_) are ignored. Edit a section and remove the _ in front of the name. Refer to the user's guide for details.",
+  "settings": {
+    "cert": "meshc.hq.avionics411.com",
+    "mongoDb": "mongodb://127.0.0.1:27017/meshcentral",
+    "mongoDbName": "meshcentral",
+    "mongoDbChangeStream": true,
+    "mongoDbBulkOperations": true,
+    "mariaDB": {
+        "host": "hq-db02.hq.avionics411.com",
+        "user": "meshcentral",
+        "port": 3306,
+        "password": "{{ meshcentral_mariadb_password }}",
+        "database": "meshcentral"
+    },
+    "WANonly": true,
+    "LANonly": false,
+    "sessionTime": 60,
+    "sessionKey": "{{ meshcentral_session_key }}",
+    "port": 80,
+    "portBind": "0.0.0.0",
+    "redirPort": 0,
+    "aliasPort": 443,
+    "ignoreAgentHashCheck": false,
+    "exactPorts": true,
+    "allowLoginToken": false,
+    "StrictTransportSecurity": false,
+    "allowFraming": false,
+    "selfUpdate": true,
+    "cleanNpmCacheOnUpdate": true,
+    "webPageLengthRandomization": true,
+    "allowHighQualityDesktop": true,
+    "desktopMultiplex": true,
+    "authLog": "/opt/meshcentral/meshcentral.auth.log",
+    "tlsOffload": "10.1.70.5",
+    "trustedProxy": "10.1.70.5",
+    "log": "main,web,webrequest,cert",
+    "syslog": "meshcentral",
+    "syslogauth": "meshcentral-auth",
+    "syslogjson": "meshcentral-json",
+    "syslogtcp": "hq-log.hq.avionics411.com:514",
+    "webrtcConfig": {
+      "iceServers": [
+        { "urls": "stun:stun.cloudflare.com:3478" },
+        { "urls": "stun:stun.l.google.com:19302" }
+      ]
+    },
+    "autoBackup": {
+      "mongoDumpPath": "/usr/bin/mongodump",
+      "backupIntervalHours": 24,
+      "keepLastDaysBackup": 10,
+      "zipPassword": "{{ meshcentral_zip_password }}",
+      "backupPath": "/opt/meshcentral/backups"
+    },
+    "__maxInvalidLogin": "Time in minutes, max amount of bad logins from a source IP in the time before logins are rejected.",
+    "maxInvalidLogin": {
+      "time": 3,
+      "count": 5,
+      "coolofftime": 10
+    },
+    "__maxInvalid2fa": "Time in minutes, max amount of bad two-factor authentication from a source IP in the time before 2FA's are rejected.",
+    "maxInvalid2fa": {
+      "time": 5,
+      "count": 5,
+      "coolofftime": 10
+    },
+    "watchDog": {
+      "interval": 100,
+      "timeout": 400
+    },
+    "_crowdsec": {
+      "url": "http://localhost:8080",
+      "apiKey": "BOUNCER_API_KEY"
+    },
+    "plugins": { "enabled": true }
+  },
+  "domains": {
+    "": {
+      "certUrl": "meshc.hq.avionics411.com",
+      "title": "Millennium International MeshC",
+      "title2": "MeshCentral",
+      "_titlePicture": "title-sample.png",
+      "_loginPicture": "title-sample.png",
+      "_pwaLogo": "title-sample.png",
+      "newAccounts": false,
+      "userNameIsEmail": true,
+      "_welcomeText": "Sample Text on Login Page.",
+      "_welcomePicture": "mainwelcome.jpg",
+      "_welcomePictureFullScreen": false,
+      "_meshMessengerTitle": "MeshMessenger",
+      "_meshMessengerPicture": "messenger.png",
+      "___hide__": "Sum of: 1 = Hide header, 2 = Hide tab, 4 = Hide footer, 8 = Hide title, 16 = Hide left bar, 32 = Hide back buttons",
+      "_hide": 4,
+      "_footer": "<a href='https://twitter.com/mytwitter'>Twitter</a>",
+      "_loginfooter": "This is a private server.",
+      "_allowSavingDeviceCredentials": false,
+      "_guestDeviceSharing": false,
+      "_AutoRemoveInactiveDevices": 37,
+      "_DeviceSearchBarServerAndClientName": false,
+      "_agentSelfGuestSharing": {
+        "expire": 120
+      },
+      "_assistantTypeAgentInvite": 2,
+      "_PreconfiguredScripts": [
+        {
+          "name": "Run NotePad as user",
+          "file": "scripts/notepad.bat",
+          "type": "bat",
+          "runas": "user"
+        },
+        {
+          "name": "Run NotePad as agent",
+          "cmd": "notepad.exe",
+          "type": "bat",
+          "runas": "agent"
+        },
+        {
+          "name": "Run echo",
+          "cmd": "echo \"hello world\"",
+          "type": "sh",
+          "runas": "agent"
+        },
+        {
+          "name": "Agent Update",
+          "cmd": "agentupdate",
+          "type": "agent"
+        }
+      ],
+      "agentCustomization": {
+        "displayName": "MillInt Agent",
+        "description": "Millennium International agent for remote monitoring, management and assistance.",
+        "companyName": "MillenniumInternational",
+        "serviceName": "millintagent",
+        "image": "agent-logo.png",
+        "fileName": "millintagent"
+      },
+      "assistantCustomization": {
+        "title": "MillInt Agent",
+        "image": "assistant-logo.png",
+        "fileName": "millintagent"
+      },
+      "androidCustomization": {
+        "title": "MillInt Agent",
+        "subtitle": "",
+        "image": "assistant-logo.png"
+      },
+      "_urlSwitching": false,
+      "_desktopPrivacyBarText": "Privacy bar: {0}, {1}",
+      "authStrategies": {
+        "__comment__": "This section is used to allow users to login using other accounts. You will need to get an API key from the services and register callback URL's",
+        "azure": {
+          "callbackurl": "https://meshc.hq.avionics411.com/auth-azure-callback",
+          "newAccounts": true,
+          "clientid": "b089c6c7-a3ca-48af-a6f0-2e517e928f9a",
+          "clientsecret": "{{ meshcentral_entraid_client_secret }}",
+          "tenantid": "9c718c21-d249-408d-991f-c8e763618057"
+        }
+      }
+    }
+  },
+  "_messaging": {
+    "_ntfy": {
+      "host": "https://[my]ntfy.sh",
+      "userurl": "https://[my]ntfy.sh/userhelp",
+      "authorization": "Basic xxxxxxxxxxxxxxxxxxxx" 
+    }
+  }
+}

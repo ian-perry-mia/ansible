@@ -1,0 +1,21 @@
+<?php
+/**
+ * Poweradmin configuration file
+ *
+ * This file is used to configure the Poweradmin application.
+ * It contains database connection settings and other configurations.
+ */
+return [
+    // Database connection settings
+    'database' => [
+        'type' => 'mysql',
+        'host' => '{{ sql_host }}',
+        'port' => '3306',
+        'user' => 'powerdns',
+        'password' => '{{ sql_password }}',
+        'name' => 'powerdns',
+        'charset' => 'utf8mb4',
+        'file' => '',
+        'debug' => false,
+    ],
+];

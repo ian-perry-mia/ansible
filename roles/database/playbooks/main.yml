@@ -1,0 +1,96 @@
+---
+- name: Install mariadb galera
+  hosts: mariadb
+  remote_user: ansible
+  become: true
+  vars:
+    ansible_ssh_private_key_file: .ssh/id_ed25519
+  tasks:
+    - name: Install prerequisite packages
+      ansible.builtin.package:
+        name:
+          - dirmngr
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - curl
+        state: present
+      tags: mariadb
+
+    - name: Get mariadb repo Script
+      ansible.builtin.get_url:
+        url: https://r.mariadb.com/downloads/mariadb_repo_setup
+        dest: /tmp/mariadb_repo_setup
+        mode: '0755'
+      tags: mariadb
+
+    - name: Execute mariadb repo Script
+      ansible.builtin.command: /tmp/mariadb_repo_setup
+      tags: mariadb
+
+    - name: Install mariadb server and galera
+      ansible.builtin.package:
+        name:
+          - mariadb-server
+          - mariadb-client
+          - galera-4
+        state: present
+      tags: mariadb
+
+    - name: Debug mariadb hostvars
+      ansible.builtin.debug:
+        msg: "{{ groups['mariadb'] | map('extract', hostvars, 'ansible_host') | join(',') }}"
+
+    - name: Configure galera
+      vars:
+        galera_cluster_comment: "galera_cluster"
+        main_ips: "{{ groups['mariadb'] | map('extract', hostvars, 'ansible_host') | join(',') }}"
+      ansible.builtin.copy:
+        dest: /etc/mysql/conf.d/galera.cnf
+        content: |
+          [mysqld]
+          binlog_format=ROW
+          default_storage_engine=InnoDB
+          innodb_autoinc_lock_mode=2
+          bind-address=0.0.0.0
+
+          wsrep_on=ON
+          wsrep_provider=/usr/lib/galera/libgalera_smm.so
+          wsrep_cluster_name=galera_cluster
+          wsrep_cluster_address="gcomm://{{ main_ips }}"
+          wsrep_node_name={{ inventory_hostname }}
+          wsrep_node_address={{ ansible_host }}
+
+    - name: Configure UFW
+      block:
+        - community.general.ufw:
+            rule: allow
+            comment: "MySQL"
+            port: 3306
+            proto: tcp
+        - community.general.ufw:
+            rule: allow
+            comment: "MySQL"
+            port: 4567
+            proto: tcp
+        - community.general.ufw:
+            rule: allow
+            comment: "MySQL"
+            port: 4567
+            proto: udp
+        - community.general.ufw:
+            rule: allow
+            comment: "MySQL"
+            port: 4568
+            proto: tcp
+        - community.general.ufw:
+            rule: allow
+            comment: "MySQL"
+            port: 4444
+            proto: tcp
+      tags: mariadb
+    - name: Restart UFW
+      community.general.ufw:
+        state: reloaded
+      tags: mariadb
+

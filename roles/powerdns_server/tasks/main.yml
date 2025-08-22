@@ -1,0 +1,121 @@
+---
+- name: Configure resolved.conf
+  ansible.builtin.copy:
+    src: resolved.conf
+    dest: /etc/systemd/resolved.conf
+    mode: '0644'
+    owner: root
+    group: root
+  register: dns_modified
+
+- name: Create symbolic link for systemd-resolved
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+  register: dns_modified2
+
+- name: Reload resolved.conf
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    name: systemd-resolved
+    state: restarted
+  when: dns_modified.changed or dns_modified2.changed
+
+- name: Verify keys are installed
+  ansible.builtin.command:
+    cmd: install -d /etc/apt/keyrings
+    creates: /etc/apt/keyrings
+
+- name: Pin PowerDNS 5.0 Authoritative Server repository
+  ansible.builtin.copy:
+    content: |
+      Package: pdns-*
+      Pin: origin repo.powerdns.com
+      Pin-Priority: 600
+    dest: /etc/apt/preferences.d/auth-50
+    mode: '0644'
+
+- name: Install PowerDNS 5.0 Authoritative Server GPG key
+  ansible.builtin.get_url:
+    url: https://repo.powerdns.com/FD380FBB-pub.asc
+    dest: /etc/apt/keyrings/auth-50-pub.asc
+    mode: '0644'
+
+- name: Install PowerDNS 5.0 Authoritative Server repository
+  ansible.builtin.deb822_repository:
+    name: pdns-server
+    types: deb
+    uris: http://repo.powerdns.com/ubuntu
+    suites: "{{ ansible_distribution_release }}-auth-50"
+    components: main
+    signed_by: /etc/apt/keyrings/auth-50-pub.asc
+    state: present
+
+- name: Pin PowerDNS 5.2 Recursor repository
+  ansible.builtin.copy:
+    content: |
+      Package: pdns-*
+      Pin: origin repo.powerdns.com
+      Pin-Priority: 600
+    dest: /etc/apt/preferences.d/rec-52
+    mode: '0644'
+
+- name: Install PowerDNS 5.2 Recursor GPG key
+  ansible.builtin.get_url:
+    url: https://repo.powerdns.com/FD380FBB-pub.asc
+    dest: /etc/apt/keyrings/rec-52-pub.asc
+    mode: '0644'
+
+- name: Install PowerDNS 5.2 Recursor repository
+  ansible.builtin.deb822_repository:
+    name: pdns-recursor
+    types: deb
+    uris: http://repo.powerdns.com/ubuntu
+    suites: "{{ ansible_distribution_release }}-rec-52"
+    components: main
+    signed_by: /etc/apt/keyrings/rec-52-pub.asc
+    state: present
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install PowerDNS 5.0 Authoritative Server
+  ansible.builtin.package:
+    name: pdns-server
+    state: present
+
+- name: Install PowerDNS 5.2 Recursor
+  ansible.builtin.package:
+    name: pdns-recursor
+    state: present
+
+- name: Install pdns mysql backend
+  ansible.builtin.package:
+    name: pdns-backend-mysql
+    state: present
+
+- name: Install config files for pdns-auth
+  ansible.builtin.template:
+    src: pdns-auth.conf.j2
+    dest: /etc/powerdns/pdns.conf
+    mode: '0644'
+
+- name: Install config files for pdns-recursor
+  ansible.builtin.template:
+    src: pdns-recursor.conf.j2
+    dest: /etc/powerdns/recursor.conf
+    mode: '0644'
+
+- name: Ensure pdns-auth service is running
+  ansible.builtin.systemd:
+    name: pdns
+    state: restarted
+    enabled: true
+
+- name: Ensure pdns-recursor service is running
+  ansible.builtin.systemd:
+    name: pdns-recursor
+    state: restarted
+    enabled: true

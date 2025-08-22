@@ -1,0 +1,21 @@
+# This file is managed by Ansible. Do not edit manually.
+# Template for PowerDNS Recursor configuration file.
+incoming:
+  listen: 
+    - "0.0.0.0:53"
+recursor:
+  extended_resolution_errors: true
+  forward_zones:
+    - zone: hq.avionics411.com
+      forwarders:
+        - 127.0.0.1:5353
+  forward_zones_recurse:
+    - zone: "."
+      forwarders:
+        - 8.8.8.8
+        - 1.1.1.1
+outgoing:
+  source_address:
+    - 0.0.0.0
+logging:
+  loglevel: 6

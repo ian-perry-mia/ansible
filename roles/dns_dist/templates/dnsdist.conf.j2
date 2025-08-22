@@ -1,0 +1,17 @@
+backends:
+  - name: "hq-dns1"
+    address: "10.1.20.5"
+    protocol: Do53
+    qps: 1000
+  - name: "hq-dns2"
+    address: "10.1.20.6"
+    protocol: Do53
+    qps: 1000
+  - name: "hq-dns3"
+    address: "10.1.20.7"
+    protocol: Do53
+    qps: 1000
+
+binds:
+  - listen_address: "0.0.0.0:53"
+    protocol: Do53

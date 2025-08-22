@@ -1,0 +1,18 @@
+- name: Ensure ISC Kea GPG Key is Present
+  ansible.builtin.apt_key:
+    url: https://dl.cloudsmith.io/public/isc/kea-3-0/gpg.B16C44CD45514C3C.key
+    state: present
+    keyring: /usr/share/keyrings/isc-kea-3-0-archive-keyring.gpg
+
+- name: Configure Kea Cloudsmith Repository
+  ansible.builtin.deb822_repository:
+    name: isc-kea-3-0
+    types:
+      - deb
+      - deb-src
+    suites: "{{ ansible_distribution_release }}"
+    components: main
+    signed_by: /usr/share/keyrings/isc-kea-3-0-archive-keyring.gpg
+    state: present
+    uris:
+      - "https://dl.cloudsmith.io/public/isc/kea-3-0/deb/{{ ansible_distribution | lower() }}"

@@ -1,0 +1,68 @@
+- name: Create Snipe IT Directory
+  ansible.builtin.file:
+    path: /opt/snipe_it
+    state: directory
+    mode: '0755'
+
+- name: Check if Snipe IT Git Repository Exists
+  ansible.builtin.stat:
+    path: /opt/snipe_it/.git
+  register: alreadythere
+
+- name: Clone Snipe IT Git Repository
+  when: not alreadythere.stat.exists
+  ansible.builtin.git:
+    accept_newhostkey: true
+    dest: /opt/snipe_it
+    repo: "https://github.com/snipe/snipe-it"
+  register: repo_clone
+  failed_when:
+    - repo_clone.failed
+    - not 'Local modifications exist in' in repo_clone.msg
+  
+
+- name: Write Configuration File
+  ansible.builtin.copy:
+    src: dotenv
+    dest: /opt/snipe_it/.env
+
+- name: Create snipeit User
+  ansible.builtin.user:
+    name: snipeit
+    groups: www-data
+    create_home: true
+    shell: /usr/sbin/nologin
+
+- name: Make snipeit owner of necessary files
+  ansible.builtin.file:
+    path: '/opt/snipe_it'
+    owner: 'www-data'
+    group: 'www-data'
+    mode: '0755'
+    recurse: true
+
+- name: Install Composer Dependencies
+  become: true
+  become_user: www-data
+  community.general.composer:
+    command: install
+    global_command: false
+    working_dir: /opt/snipe_it
+    no_dev: true
+    prefer_source: true
+
+- name: Create Virtual Host File
+  ansible.builtin.copy:
+    src: 00-snipeit.conf
+    dest: /etc/apache2/sites-available
+
+- name: Enable Site
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/a2ensite
+      - 00-snipeit
+
+- name: Restart apache
+  ansible.builtin.systemd_service:
+    service: apache2
+    state: restarted

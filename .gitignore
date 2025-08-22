@@ -1,0 +1,5 @@
+.ssh
+.pass
+*.DS_Store*
+.ansible
+.vscode

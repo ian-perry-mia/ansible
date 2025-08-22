@@ -1,0 +1,7 @@
+---
+- name: Reload network interfaces
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/ifreload
+      - -av
+  changed_when: true

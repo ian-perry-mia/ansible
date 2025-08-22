@@ -1,0 +1,32 @@
+- name: Download installer file
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/openpubkey/opkssh/main/scripts/install-linux.sh
+    dest: /tmp/install-linux.sh
+    mode: '0700'
+
+- name: Execute installer file
+  ansible.builtin.command:
+    cmd: /tmp/install-linux.sh
+    creates: /usr/local/bin/opkssh
+  register: install_result
+
+- name: Add Entra provider to opkssh
+  ansible.builtin.lineinfile:
+    path: /etc/opk/providers
+    line: 'https://login.microsoftonline.com/9c718c21-d249-408d-991f-c8e763618057 7520dfbd-94a3-40eb-8e8a-b16f5fc1d34a/v2.0 24h'
+
+- name: Install Policy Script
+  ansible.builtin.copy:
+    src: opkssh-email.sh
+    dest: /etc/opk/opkssh-email.sh
+    mode: '0755'
+    owner: root
+    group: opksshuser
+
+- name: Create opkssh email policy file
+  ansible.builtin.copy:
+    src: opkssh-email-policy.yml
+    dest: /etc/opk/policy.d/opkssh-email-policy.yml
+    mode: '0640'
+    owner: root
+    group: opksshuser

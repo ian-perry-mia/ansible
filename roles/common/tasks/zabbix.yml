@@ -1,0 +1,59 @@
+---
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Set Zabbix URL Dictionary
+  ansible.builtin.set_fact:
+    zabbix_os_dictionary:
+      Debian: "{{ ansible_distribution_major_version }}"
+      Ubuntu: "{{ ansible_distribution_version }}"
+
+- name: Set release version for zabbix url
+  ansible.builtin.set_fact:
+    zabbix_os_version: "{{ zabbix_os_dictionary[ansible_distribution] }}"
+    zabbix_os: "{{ ansible_distribution | lower() }}"
+
+- name: Enable zabbix passive port in UFW
+  community.general.ufw:
+    rule: allow
+    port: 10050
+    comment: "Zabbix"
+    proto: "tcp"
+  when: '"ufw" in ansible_facts.packages'
+
+- name: Enable zabbix active ports in UFW
+  community.general.ufw:
+    rule: allow
+    port: 10051
+    comment: "Zabbix"
+    proto: "tcp"
+  when: '"ufw" in ansible_facts.packages'
+
+- name: Install Zabbix Repo Debian
+  ansible.builtin.apt:
+    deb: "https://repo.zabbix.com/zabbix/{{ zabbix_release }}/release/{{ zabbix_os }}/pool/main/z/zabbix-release/zabbix-release_latest_7.4\
+          +{{ zabbix_os }}{{ zabbix_os_version }}_all.deb"
+
+- name: Install Zabbix Agent 2
+  ansible.builtin.apt:
+    name: zabbix-agent2
+    update_cache: true
+    state: present
+  register: zabbix_install
+
+- name: Install Zabbix Agent Configuration
+  ansible.builtin.template:
+    src: zabbix-agent2.conf.j2
+    dest: /etc/zabbix/zabbix_agent2.conf
+    mode: '0644'
+    owner: zabbix
+    group: zabbix
+  register: zabbix_config
+
+- name: Restart and enable zabbix-agent2 service
+  ansible.builtin.systemd:
+    name: zabbix-agent2
+    state: restarted
+    enabled: true
+  when: 'zabbix_install.changed or zabbix_config.changed'

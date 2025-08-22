@@ -1,0 +1,7 @@
+#cloud-config
+ssh_pwauth: false
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+packages:
+  - qemu-guest-agent

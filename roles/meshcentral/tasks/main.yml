@@ -1,0 +1,12 @@
+- name: Use NPM to Install Meshcentral
+  community.general.npm:
+    name: meshcentral
+    global: true
+
+- name: Install Meshcentral Configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /opt/meshcentral/meshcentral-data/config.json
+    owner: root
+    group: root
+    mode: '0644'

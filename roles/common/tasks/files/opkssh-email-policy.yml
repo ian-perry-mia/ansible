@@ -1,0 +1,2 @@
+name: Allow if email address matches
+command: /etc/opk/opkssh-email.sh

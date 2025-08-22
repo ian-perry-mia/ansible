@@ -1,0 +1,138 @@
+---
+dns_server:
+  hosts:
+    hq-dns01:
+      ansible_host: 10.1.20.5
+      sql_host: 10.1.20.31
+    hq-dns02:
+      ansible_host: 10.1.20.6
+      sql_host: 10.1.20.32
+
+mariadb:
+  hosts:
+    hq-db01:
+      ansible_host: 10.1.20.31
+    hq-db02:
+      ansible_host: 10.1.20.32
+    hq-db03:
+      ansible_host: 10.1.20.33
+
+poweradmin:
+  hosts:
+    hq-dns0:
+      ansible_host: 10.1.20.4
+      sql_host: 10.1.20.31
+  vars:
+    unattended_upgrades_false: true
+
+caddy:
+  hosts:
+    hq-caddy:
+      ansible_host: 10.1.70.5
+  vars:
+    unattended_upgrades_false: true
+
+zabbix_server:
+  hosts:
+    hq-zabbix01:
+      ansible_host: 10.1.20.35
+      primary: true
+      sql_host: 10.1.20.31
+    hq-zabbix02:
+      ansible_host: 10.1.20.36
+      primary: false
+      sql_host: 10.1.20.32
+openobserve:
+  hosts:
+    hq-log:
+      ansible_host: 10.1.20.9
+  vars:
+    unattended_upgrades_reboot: true
+
+snipe_it:
+  hosts:
+    hq-snipe-it:
+      ansible_host: 10.1.20.7
+      php_packages:
+        - php
+        - php-apcu
+        - php-gd
+        - php-cli
+        - php-json
+        - php-mbstring
+        - php-tokenizer
+        - php-curl
+        - php-mysql
+        - php-ldap
+        - php-zip
+        - php-bcmath
+        - php-xml
+        - php-exif
+        - php-intl
+  vars:
+    unattended_upgrades_reboot: true
+
+meshcentral:
+  hosts:
+    hq-meshcentral:
+      ansible_host: 10.1.20.8
+      mongodb_version: 8.0.12
+      nvm_version: latest
+      nvm_node_version: 24.5.0
+      nvm_install_path: /opt/nvm
+      nvm_shell_init_file: /etc/profile
+  vars:
+    unattended_upgrades_reboot: true
+
+proxmox:
+  hosts:
+    hq-mdf-vha:
+      ansible_host: 10.1.20.14
+      node_ip: 14
+    hq-mdf-vhb:
+      ansible_host: 10.1.20.15
+      node_ip: 15
+    hq-mdf-vhc:
+      ansible_host: 10.1.20.16
+      node_ip: 16
+    hq-mdf-vhd:
+      ansible_host: 10.1.20.17
+      node_ip: 17
+  vars:
+    ansible_user: root
+
+netbox:
+  hosts:
+    hq-netbox:
+      ansible_host: 10.1.20.11
+
+kea:
+  hosts:
+    hq-kea01:
+      ansible_host: 10.1.20.49
+      stork_server: localhost
+    hq-kea02:
+      ansible_host: 10.1.20.50
+      stork_server: hq-kea01.hq.avionics411.com
+
+stork_server:
+  hosts:
+    hq-kea01:
+  vars:
+    postgresql_user: postgres
+    postgresql_group: postgres
+    postgresql_hba_entries:
+      - { type: local, database: all, user: postgres, auth_method: peer }
+      - { type: local, database: all, user: all, auth_method: peer }
+      - { type: local, database: stork, user: stork-server, auth_method: md5 }
+      - { type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5 }
+      - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+      - { type: host, database: all, user: all, address: '10.1.20.0/24', auth_method: md5 }
+
+
+ungrouped:
+  hosts:
+    hq-aadds:
+      ansible_host: 10.1.20.10
+      ansible_user: root
+      container: true

@@ -1,0 +1,54 @@
+---
+- name: Check if Rapid7 is installed
+  ansible.builtin.systemd:
+    name: ir_agent
+    state: started
+    enabled: true
+  tags: rapid7
+  register: rapid7_service_status
+  ignore_errors: true
+
+- name: Install Rapid7 Insight Agent
+  when: >
+    'status' not in rapid7_service_status
+    or 'ActiveState' not in rapid7_service_status.status
+    or rapid7_service_status.status.ActiveState != 'active'
+  block:
+    - name: Copy Rapid7 Installer
+      ansible.builtin.copy:
+        src: "rapid7-insight-agent_{{ rapid7_version }}{{ rapid7_subversion }}_{{ ansible_architecture }}.deb"
+        dest: "/tmp/rapid7-insight-agent_{{ rapid7_version }}{{ rapid7_subversion }}_{{ ansible_architecture }}.deb"
+        mode: '0644'
+      tags: rapid7
+
+    - name: Install Rapid7 Insight Agent .deb
+      ansible.builtin.apt:
+        deb: "/tmp/rapid7-insight-agent_{{ rapid7_version }}{{ rapid7_subversion }}_{{ ansible_architecture }}.deb"
+        state: present
+      tags: rapid7
+
+    - name: Configure Rapid7 Insight Agent
+      ansible.builtin.command:
+        argv:
+          - "/opt/rapid7/ir_agent/components/insight_agent/{{ rapid7_version }}/configure_agent.sh"
+          - -t
+          - "{{ rapid7_token }}"
+          - -s
+          - -v
+      changed_when: true
+      tags: rapid7
+
+    - name: Ensure Rapid7 Insight Agent is running
+      ansible.builtin.systemd:
+        name: ir_agent
+        state: started
+        enabled: true
+      tags: rapid7
+
+    - name: Cleanup Rapid7 Installer
+      ansible.builtin.file:
+        path: "/tmp/rapid7-insight-agent_{{ rapid7_version }}{{ rapid7_subversion }}_{{ ansible_architecture }}.deb"
+        state: absent
+      register: tmp
+      changed_when: tmp is changed
+      tags: rapid7

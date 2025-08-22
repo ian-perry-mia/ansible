@@ -1,0 +1,56 @@
+---
+- name: Install unattended-upgrades
+  ansible.builtin.package:
+    name:
+      - unattended-upgrades
+      - update-notifier-common
+    state: present
+
+- name: "Create apt file that would be made by interactive dpkg-reconfigure"
+  ansible.builtin.file:
+    path: "/etc/apt/apt.conf.d/20auto-upgrades"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    state: "touch"
+
+- name: "Populate 20auto-upgrades apt file"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/20auto-upgrades"
+    line: '{{ item }}'
+  with_items:
+    - 'APT::Periodic::Update-Package-Lists "1";'
+    - 'APT::Periodic::Unattended-Upgrade "1";'
+
+- name: Populate 50unattended-upgrades apt file
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    line: '{{ item }}'
+  with_items:
+    - 'Unattended-Upgrade::Origins-Pattern {"origin=Ubuntu,codename={{ ansible_distribution_release }},label=Ubuntu";};'
+    - 'Unattended-Upgrade::Origins-Pattern {"origin=Debian,codename={{ ansible_distribution_release }},label=Debian";};'
+
+- name: Populate 50unattended-upgrades apt file
+  when: "unattended_upgrades_reboot | default(false)"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    line: '{{ item }}'
+  with_items:
+    - 'Unattended-Upgrade::Automatic-Reboot "true";'
+    - 'Unattended-Upgrade::Automatic-Reboot-Time "02:00";'
+
+- name: Remove reboot lines 50unattended-upgrades apt file
+  when: "not (unattended_upgrades_reboot | default(false))"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    line: '{{ item }}'
+    state: absent
+  with_items:
+    - 'Unattended-Upgrade::Automatic-Reboot "true";'
+    - 'Unattended-Upgrade::Automatic-Reboot-Time "02:00";'
+
+- name: "Enable remove unused deps in /etc/apt/apt.conf.d/50unattended-upgrades"
+  ansible.builtin.lineinfile:
+    dest: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    line: 'Unattended-Upgrade::Remove-Unused-Dependencies "true";'
+    insertafter: '^//Unattended-Upgrade::Remove-Unused-Dependencies'

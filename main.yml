@@ -109,3 +109,9 @@
   become: true
   roles:
     - geerlingguy.docker
+
+- name: Automation Hosts
+  hosts: automation
+  become: true
+  roles:
+    - geerlingguy.docker

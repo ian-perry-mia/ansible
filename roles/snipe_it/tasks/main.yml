@@ -15,16 +15,12 @@
     accept_newhostkey: true
     dest: /opt/snipe_it
     repo: "https://github.com/snipe/snipe-it"
+    version: master
+    single_branch: true
   register: repo_clone
   failed_when:
     - repo_clone.failed
     - not 'Local modifications exist in' in repo_clone.msg
-  
-
-- name: Write Configuration File
-  ansible.builtin.copy:
-    src: dotenv
-    dest: /opt/snipe_it/.env
 
 - name: Create snipeit User
   ansible.builtin.user:
@@ -41,6 +37,14 @@
     mode: '0755'
     recurse: true
 
+- name: Write Configuration File
+  ansible.builtin.template:
+    src: dotenv.j2
+    dest: /opt/snipe_it/.env
+    owner: www-data
+    group: www-data
+    mode: '0600'
+
 - name: Install Composer Dependencies
   become: true
   become_user: www-data
@@ -55,12 +59,16 @@
   ansible.builtin.copy:
     src: 00-snipeit.conf
     dest: /etc/apache2/sites-available
+    owner: snipeit
+    group: snipeit
+    mode: '0644'
 
 - name: Enable Site
   ansible.builtin.command:
     argv:
       - /usr/sbin/a2ensite
       - 00-snipeit
+    creates: /etc/apache2/sites-enabled/00-snipeit.conf
 
 - name: Restart apache
   ansible.builtin.systemd_service:

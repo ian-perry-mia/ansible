@@ -28,7 +28,7 @@ domain = 'hq.avionics411.com'
 
 req = requests.Session()
 
-req.headers.update({'X-Api-Key': 'PWEPVSjHmVP57YgiSrZPJxBlmX2DRioo'})
+req.headers.update({'X-Api-Key': '{{ powerdns_api_key }}'})
 
 resp = req.get(f'{url}/servers/{server_name}/zones')
 if not resp.ok:
